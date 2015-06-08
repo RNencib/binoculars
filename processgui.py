@@ -1,114 +1,116 @@
-"""
-BINoculars gui for data processing 
-Created on 2015-06-04
-author: Remy Nencib (remy.nencib@esrf.r)
-"""
-
-import sys
-import os
-import glob
-from PyQt4 import QtGui, QtCore, Qt
-import sys, os
+import sys,os 
 import itertools
 import inspect
 import glob
 import BINoculars.util, BINoculars.main
 import time
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 
 
-class Window(QtGui.QMainWindow):
+#--------------------------------------------CREATE MAIN WINDOW----------------------------------------
+class SimpleGUI(QMainWindow):
 
     def __init__(self):
-        super(Window, self).__init__()
+        super(SimpleGUI, self).__init__()
         self.initUI()
-        self.tab_widget = QtGui.QTabWidget(self)
+        self.tab_widget = QTabWidget(self)
         self.setCentralWidget(self.tab_widget)
+        #add the close button for tabs
         close = self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.close_tab)
 
+    #method for close tabs
     def close_tab(self, tab):
         self.tab_widget.removeTab(tab)
 
     def initUI(self):
-        openFile = QtGui.QAction('Open', self)
+        #we create the menu bar
+        openFile = QAction('Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open new File')
-        openFile.triggered.connect(self.ShowFile)
+        openFile.triggered.connect(self.showFile)
 
-        saveFile = QtGui.QAction('Save', self)
+        saveFile = QAction('Save', self)
         saveFile.setShortcut('Ctrl+S')
         saveFile.setStatusTip('Save File')
         saveFile.triggered.connect(self.Save)
 
-        Create = QtGui.QAction('Create', self)
-        Create.setStatusTip('Create Configfile')
+        Create = QAction('Create', self)
+        Create.setStatusTip('Create new configuration')
         Create.triggered.connect(self.New_Config)
-         
+
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(openFile)
         fileMenu.addAction(saveFile)
-        fileMenu = menubar.addMenu('&New Configfile')
+        fileMenu = menubar.addMenu('&New Configuration')
         fileMenu.addAction(Create)
-        fileMenu = menubar.addMenu('&HELP')
 
-        palette = QtGui.QPalette()
-        palette.setColor(QtGui.QPalette.Background,QtCore.Qt.gray)
+        #we configue the main windows
+        palette = QPalette()
+        palette.setColor(QPalette.Background,Qt.gray)
         self.setPalette(palette)
-        self.setGeometry(250, 100,500,500)
-        self.setWindowTitle('Binoculars processgui')
-        self.setWindowIcon(QtGui.QIcon('binoculars.png'))
-        self.show()
+        #self.setGeometry(250, 100,500,500)
+        self.setWindowTitle('Binoculars')
+        self.setWindowIcon(QIcon('binoculars.png'))
+        self.showMaximized()
 
-    def ShowFile(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '')
+    #we call the load function
+    def showFile(self):
+        filename = QFileDialog.getOpenFileName(self, 'Open File', '')
         for F in filename.split('/') :
             NameFile = []
             NameFile.append(F)
         NameFile.reverse()
-        self.tab_widget.addTab(Conf_Tab(self),NameFile[0])
-        widget = self.tab_widget.currentWidget()
-        widget.read_data(filename)
+        if NameFile[0].isEmpty() == False:
+            newIndex =  self.tab_widget.addTab(Conf_Tab(self),NameFile[0])
+            self.tab_widget.setCurrentIndex(newIndex)
+            widget = self.tab_widget.currentWidget()
+            widget.read_data(filename)
 
-
+    #we call the save function
     def Save(self):
-        filename = QtGui.QFileDialog().getSaveFileName(self, 'Save', '', '*.txt')
+        filename = QFileDialog().getSaveFileName(self, 'Enregistrer', '', '*.txt')
         widget = self.tab_widget.currentWidget() 
         widget.save(filename) 
-        
+
+    #we call the new tab conf   
     def New_Config(self):
-        self.tab_widget.addTab(Conf_Tab(self),'New configfile')
+        self.tab_widget.addTab(Conf_Tab(self),'New configuration')
+
 
 #----------------------------------------------------------------------------------------------------
 #-----------------------------------------CREATE TABLE-----------------------------------------------
-class Table(QtGui.QWidget):
+class Table(QWidget):
     def __init__(self, parent = None):
         super(Table, self).__init__()
         
         # create a QTableWidget
-        self.table = QtGui.QTableWidget(1, 3, self)
+        self.table = QTableWidget(1, 2, self)
         self.table.setHorizontalHeaderLabels(['Parameter', 'Value','Comment'])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.verticalHeader().setVisible(False)
         
         #create combobox
-        self.combobox = QtGui.QComboBox()
+        self.combobox = QComboBox()
         #add items
-        cell = QtGui.QTableWidgetItem(QtCore.QString("type"))
-        cell2 = QtGui.QTableWidgetItem(QtCore.QString(""))
-        self.table.setItem(0, 0, cell)
+        self.cell = QTableWidgetItem(QString("type"))
+        self.table.setItem(0, 0,self.cell)
         self.table.setCellWidget(0, 1, self.combobox)
-        self.table.setItem(0, 2,cell2)
-
-        self.btn_add_row = QtGui.QPushButton('+', self)
-        self.connect(self.btn_add_row, QtCore.SIGNAL('clicked()'), self.add_row)
-        self.buttonRemove = QtGui.QPushButton('-',self)
-        self.connect(self.buttonRemove, QtCore.SIGNAL("clicked()"), self.remove) 
-
-        layout = QtGui.QGridLayout()
-        layout.addWidget(self.table,0,0,3,10)
-        layout.addWidget(self.btn_add_row,0,11)
-        layout.addWidget(self.buttonRemove,1,11)
+        #we create pushbuttons and we call the method when we clic on 
+        self.btn_add_row = QPushButton('+', self)
+        self.connect(self.btn_add_row, SIGNAL('clicked()'), self.add_row)
+        self.buttonRemove = QPushButton('-',self)
+        self.connect(self.buttonRemove, SIGNAL("clicked()"), self.remove)
+        self.btn_add_row.resize(10,10)
+        self.buttonRemove.resize(10,10) 
+        #the dispositon of the table and the butttons
+        layout =QGridLayout()
+        layout.addWidget(self.table,1,0,1,0)
+        layout.addWidget(self.btn_add_row,0,0)
+        layout.addWidget(self.buttonRemove,0,1)
         self.setLayout(layout)
 
     def add_row(self):
@@ -120,11 +122,11 @@ class Table(QtGui.QWidget):
     def get_keys(self):
         return list(self.table.item(index,0).text() for index in range(self.table.rowCount())) 
 
-
+    #Here we take all values on tables
     def getParam(self):
         for index in range(self.table.rowCount()):
-            key = str(self.table.item(index,0).text()) 
-            comment = str(self.table.item(index, 2).text())
+            key = str(self.table.item(index,0).text())
+            comment = str(self.table.item(index,0).toolTip())
             if self.table.item(index,1):
                 value = str(self.table.item(index, 1).text())
             else:
@@ -132,20 +134,22 @@ class Table(QtGui.QWidget):
             if self.table.item == None:
                 value = str(self.table.item(index,1).text(""))
             yield key, value, comment
-        
+
+    #Here we put all values on tables   
     def addData(self, data):
         for item in data:
             if item[0] == 'type':
                 box = self.table.cellWidget(0,1)
-                box.setCurrentIndex(box.findText(item[1], QtCore.Qt.MatchFixedString))
-                newitem = QtGui.QTableWidgetItem(item[2])
-                self.table.setItem(0, 2, newitem)
+                box.setCurrentIndex(box.findText(item[1], Qt.MatchFixedString))
+                self.cell.setToolTip(item[2])
             else: 
                 self.add_row()
                 row = self.table.rowCount()
                 for col in range(self.table.columnCount()):
-                    newitem = QtGui.QTableWidgetItem(item[col])
-                    self.table.setItem(row -1, col, newitem)
+                    self.newitem = QTableWidgetItem(item[col])
+                    self.table.setItem(row -1, col, self.newitem)
+                    self.newitem.setToolTip(item[2])
+                        
 
     def addDataConf(self, items):
         keys = self.get_keys()
@@ -159,39 +163,44 @@ class Table(QtGui.QWidget):
 
 #----------------------------------------------------------------------------------------------------
 #-----------------------------------------CREATE CONFIG----------------------------------------------
-class Conf_Tab(QtGui.QWidget):
+class Conf_Tab(QWidget):
     def __init__(self, parent = None):
 
         super(Conf_Tab,self).__init__()
+        #we create 3 tables
         self.Dis = Table()
         self.Inp = Table()
         self.Pro = Table()
 
-        label1 = QtGui.QLabel('<strong>Dispatcher</strong>')
-        label2 = QtGui.QLabel('<strong>Input</strong>')
-        label3 = QtGui.QLabel('<strong>Projection<strong>')
+        label1 = QLabel('<strong>Dispatcher</strong>')
+        label2 = QLabel('<strong>Input</strong>')
+        label3 = QLabel('<strong>Projection<strong>')
 
-        self.select = QtGui.QComboBox()
+        self.select = QComboBox()
         backends = list(backend.lower() for backend in BINoculars.util.get_backends())
-        self.select.addItems(QtCore.QStringList(backends))
-        self.start = QtGui.QPushButton('run')
-        self.connect(self.start, QtCore.SIGNAL("clicked()"), self.run)
-        self.scan = QtGui.QLineEdit()
+        #we add the list of different backends on the select combobox
+        self.select.addItems(QStringList(backends))
+        self.start = QPushButton('run')
+        self.connect(self.start, SIGNAL("clicked()"), self.run)
+        self.scan = QLineEdit()
+        self.scan.setToolTip('scan selection exemple: 820 824')
         self.start.setStyleSheet("background-color: darkred")
 
-        Layout = QtGui.QGridLayout()
-        Layout.addWidget(self.select,0,1)
-        Layout.addWidget(label1,1,1)
-        Layout.addWidget(self.Dis,2,1)
-        Layout.addWidget(label2,3,1)
-        Layout.addWidget(self.Inp,4,1)
-        Layout.addWidget(label3,5,1)
-        Layout.addWidget(self.Pro,6,1) 
-        Layout.addWidget(self.start,7,0)
-        Layout.addWidget(self.scan,7,1)
+        #the dispositon of all elements of the gui
+        Layout = QGridLayout()
+        Layout.addWidget(label1,0,2)
+        Layout.addWidget(label2,0,1)
+        Layout.addWidget(label3,0,3)
+        Layout.addWidget(self.select,0,0)
+        Layout.addWidget(self.Dis,1,2)
+        Layout.addWidget(self.Inp,1,1)
+        Layout.addWidget(self.Pro,1,3) 
+        Layout.addWidget(self.start,2,0)
+        Layout.addWidget(self.scan,2,1)
         self.setLayout(Layout)
- 
-        self.Dis.add_to_combo(QtCore.QStringList(BINoculars.util.get_dispatchers()))
+        
+        #Here we call all methods for selected an ellement on differents combobox 
+        self.Dis.add_to_combo(QStringList(BINoculars.util.get_dispatchers()))
         self.select.activated['QString'].connect(self.DataCombo)
         self.Inp.combobox.activated['QString'].connect(self.DataTableInp)
         self.Pro.combobox.activated['QString'].connect(self.DataTableInpPro)
@@ -199,8 +208,8 @@ class Conf_Tab(QtGui.QWidget):
         
 
     def DataCombo(self,text):
-        self.Inp.add_to_combo(QtCore.QStringList(BINoculars.util.get_inputs(str(text))))
-        self.Pro.add_to_combo(QtCore.QStringList(BINoculars.util.get_projections(str(text))))
+        self.Inp.add_to_combo(QStringList(BINoculars.util.get_inputs(str(text))))
+        self.Pro.add_to_combo(QStringList(BINoculars.util.get_projections(str(text))))
 
     def DataTableInp (self,text):
         backend = str(self.select.currentText())
@@ -217,11 +226,12 @@ class Conf_Tab(QtGui.QWidget):
         disp = BINoculars.util.get_dispatcher_configkeys(str(self.Dis.combobox.currentText()))
         self.Dis.addDataConf(disp)
 
- 
+    #The save method we take all ellements on tables and we put them in this format {0} = {1} #{2}
     def save(self, filename): 
         with open(filename, 'w') as fp:
             fp.write('[dispatcher]\n')
-            for key, value, comment in self.Dis.getParam():# cycles over the iterator object
+            # cycles over the iterator object
+            for key, value, comment in self.Dis.getParam():
                 fp.write('{0} = {1} #{2}\n'.format(key, value, comment))
             fp.write('[input]\n')
             for key, value, comment in self.Inp.getParam():
@@ -234,32 +244,32 @@ class Conf_Tab(QtGui.QWidget):
                     value = '{0}:{1}'.format(self.select.currentText(),value)
                 fp.write('{0} = {1} #{2}\n'.format(key, value, comment))
 
+    #This method take the name of objects and values for run the script
     def get_configobj(self):
 
-        inDis = dict((key, value) for key, value, comment in self.Dis.getParam())
         inInp = {}
+        inDis = {}
         inPro = {}
+
+        InDis = dict((key, value) for key, value, comment in self.Dis.getParam())
 
         for key, value, comment in self.Inp.getParam():
             if key == 'type':
-                value = '{0}:{1}'.format(str(self.select.currentText()).strip(),value)
-            inInp[key] = value   
+                value = '{0}:{1}'.format(self.select.currentText(),value)
+            inInp[key] = value 
 
         for key, value, comment in self.Pro.getParam():
             if key == 'type':
-                value = '{0}:{1}'.format(str(self.select.currentText()).strip(),value)
+                value = '{0}:{1}'.format(self.select.currentText(),value)
             inPro[key] = value
 
-        cfg = BINoculars.util.ConfigFile('processgui {0}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime())))
+        cfg = BINoculars.util.ConfigFile('gui {0}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime())))
         setattr(cfg, 'input', inInp)
         setattr(cfg, 'dispatcher', inDis)
         setattr(cfg, 'projection', inPro)
-
-        print inInp
-
         return cfg
 
-
+    #This method take elements on a text file or the binocular script and put them on tables
     def read_data(self,filename):
         with open(filename, 'r') as inf:
             lines = inf.readlines()
@@ -287,9 +297,8 @@ class Conf_Tab(QtGui.QWidget):
                         backend, value = value.strip(' ').split(':')
                     data[key].append([name.strip(' '), value.strip(' '), cauda.strip(' ')])
 
-        self.select.setCurrentIndex(self.select.findText(backend, QtCore.Qt.MatchFixedString))
+        self.select.setCurrentIndex(self.select.findText(backend, Qt.MatchFixedString))
         self.DataCombo(backend)
-
         for key in data:
             if key == 'dispatcher':
                 self.Dis.addData(data[key])
@@ -297,25 +306,12 @@ class Conf_Tab(QtGui.QWidget):
                 self.Inp.addData(data[key])
             elif key == 'projection':
                 self.Pro.addData(data[key])
-                
+
+    #We run the script and create a hdf5 file            
     def run(self):
         command = [str(self.scan.text())]
         cfg = self.get_configobj()
-
-        print 'Command: {0}'.format(command)
-        print cfg
-
         BINoculars.main.Main.from_object(cfg, command)
-
-if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
-
-    main = Window()
-    main.show()
-
-    sys.exit(app.exec_())
-
-
 
 
 
