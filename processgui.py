@@ -67,14 +67,15 @@ class Window(QtGui.QMainWindow):
         self.setWindowTitle('Binoculars processgui')
         self.show()
 
-        self.ListCommand = QtGui.QTableWidget(1, 1, self)
+        self.ListCommand = QtGui.QTableWidget(1, 2, self)
         self.ListCommand.verticalHeader().setVisible(True)
         self.ListCommand.horizontalHeader().setVisible(False)
         self.ListCommand.horizontalHeader().stretchSectionCount()
-        self.ListCommand.setColumnWidth(0, 100)
+        self.ListCommand.setColumnWidth(0, 80)
+        self.ListCommand.setColumnWidth(1, 80)
         self.process = QtGui.QPushButton('run',self)
         self.process.setStyleSheet("background-color: darkred")
-        #self.connect(self.process, QtCore.SIGNAL("clicked()"),)
+        self.connect(self.process, QtCore.SIGNAL("clicked()"),self.run)
         
 
         self.wid = QtGui.QWidget()
@@ -87,12 +88,36 @@ class Window(QtGui.QMainWindow):
         self.Dock.setAllowedAreas( QtCore.Qt.LeftDockWidgetArea)
         self.Dock.setFeatures(QtGui.QDockWidget.NoDockWidgetFeatures)
         self.Dock.setWidget(self.wid)
-        self.Dock.setMaximumWidth(130)
-        self.Dock.setMinimumWidth(130)
+        self.Dock.setMaximumWidth(200)
+        self.Dock.setMinimumWidth(200)
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1),self.Dock)
-
-    
         
+        
+    def Add_To_Liste(self,(command, cfg)): 
+        row = self.ListCommand.rowCount()
+        item1 = QtGui.QTableWidgetItem(str(command))
+        item1.command = command
+        item2 = QtGui.QTableWidgetItem(str(cfg))
+        item2.cfg = cfg
+
+        self.ListCommand.setItem(row-1, 0, item1)
+        self.ListCommand.setItem(row-1, 1, item2)
+        self.ListCommand.insertRow(self.ListCommand.rowCount())
+        
+
+    #We run the script and create a hdf5 file            
+    def run(self):
+        try:
+            for index in range(self.ListCommand.rowCount()):
+                cfg = self.ListCommand.item(index,1).cfg
+                command = self.ListCommand.item(index,0).command
+                BINoculars.main.Main.from_object(cfg, command)
+        except BaseException, e:
+            #QtGui.QMessageBox.about(self,"Error",str(e))
+            tb=traceback.format_exc()
+            #we show the traceback in a messagebox when the user make an error 
+            QtGui.QMessageBox.about(self,"Error Message",QtCore.QString(tb))
+
     #we call the load function
     def ShowFile(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '')
@@ -100,11 +125,12 @@ class Window(QtGui.QMainWindow):
             NameFile = []
             NameFile.append(F)
         NameFile.reverse()
-        if NameFile[0].isEmpty() == False:
-            newIndex =  self.tab_widget.addTab(Conf_Tab(self),NameFile[0])
-            self.tab_widget.setCurrentIndex(newIndex)
-            widget = self.tab_widget.currentWidget()
-            widget.read_data(filename)
+        confwidget = Conf_Tab(self) 
+        newIndex =  self.tab_widget.addTab(confwidget,NameFile[0])
+        QtCore.QObject.connect(confwidget, QtCore.SIGNAL("command"),self.Add_To_Liste)
+        self.tab_widget.setCurrentIndex(newIndex)
+        widget = self.tab_widget.currentWidget()
+        widget.read_data(filename)
 
     #we call the save function
     def Save(self):
@@ -114,7 +140,9 @@ class Window(QtGui.QMainWindow):
 
     #we call the new tab conf   
     def New_Config(self):
-        self.tab_widget.addTab(Conf_Tab(self),'New configfile')
+        widget = Conf_Tab(self) 
+        self.tab_widget.addTab(widget,'New configfile') 
+        QtCore.QObject.connect(widget, QtCore.SIGNAL("command"),self.Add_To_Liste)
 
 
 #----------------------------------------------------------------------------------------------------
@@ -347,25 +375,15 @@ class Conf_Tab(QtGui.QWidget):
             elif key == 'projection':
                 self.Pro.addData(data[key])
 
-    #We run the script and create a hdf5 file            
-    def run(self):
-        try:
-            self.command = [str(self.scan.text())]
-            cfg = self.get_configobj()
-            print 'Command: {0}'.format(self.command)
-            print cfg
-            BINoculars.main.Main.from_object(cfg, self.command)
-        
-        except BaseException, e:
-            #QtGui.QMessageBox.about(self,"Error",str(e))
-            tb=traceback.format_exc()
-            #we show the traceback in a messagebox when the user make an error 
-            QtGui.QMessageBox.about(self,"Error Message",QtCore.QString(tb))
-
+    #we add command on the DockWidget
     def AddCommand(self):
-        Window.ListCommand.insertRow(self.ListCommand.rowCount())
-        newitem = [str(self.scan.text())]
-        Window.ListCommand.setItem(row -1, 0, newitem)
+        scan = [str(self.scan.text())]
+        cfg = self.get_configobj()
+        commandconfig = (scan , cfg)
+        self.emit(QtCore.SIGNAL('command'), commandconfig)
+        
+        
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
