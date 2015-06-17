@@ -108,7 +108,7 @@ class Window(QtGui.QMainWindow):
     #We run the script and create a hdf5 file            
     def run(self):
         try:
-            for index in range(self.ListCommand.rowCount()):
+            for index in range(self.ListCommand.rowCount()-1):
                 cfg = self.ListCommand.item(index,1).cfg
                 command = self.ListCommand.item(index,0).command
                 BINoculars.main.Main.from_object(cfg, command)
