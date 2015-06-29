@@ -73,6 +73,8 @@ class Window(QtGui.QMainWindow):
         self.ListCommand.horizontalHeader().stretchSectionCount()
         self.ListCommand.setColumnWidth(0, 80)
         self.ListCommand.setColumnWidth(1, 80)
+        self.buttonDelete = QtGui.QPushButton('Delete',self)
+        self.connect(self.buttonDelete, QtCore.SIGNAL("clicked()"), self.removeConf)
         self.process = QtGui.QPushButton('run',self)
         self.process.setStyleSheet("background-color: darkred")
         self.connect(self.process, QtCore.SIGNAL("clicked()"),self.run)
@@ -82,6 +84,7 @@ class Window(QtGui.QMainWindow):
         self.CommandLayout = QtGui.QVBoxLayout()
         self.CommandLayout.addWidget(self.ListCommand)
         self.CommandLayout.addWidget(self.process)
+        self.CommandLayout.addWidget(self.buttonDelete)
         self.wid.setLayout(self.CommandLayout)
 
         self.Dock = QtGui.QDockWidget()
@@ -91,7 +94,9 @@ class Window(QtGui.QMainWindow):
         self.Dock.setMaximumWidth(200)
         self.Dock.setMinimumWidth(200)
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1),self.Dock)
-        
+    
+    def removeConf(self):
+        self.ListCommand.removeRow(self.ListCommand.currentRow())  
         
     def Add_To_Liste(self,(command, cfg)): 
         row = self.ListCommand.rowCount()
@@ -112,6 +117,7 @@ class Window(QtGui.QMainWindow):
                 cfg = self.ListCommand.item(index,1).cfg
                 command = self.ListCommand.item(index,0).command
                 BINoculars.main.Main.from_object(cfg, command)
+            self.ListCommand.setRowCount(1)
         except BaseException, e:
             #QtGui.QMessageBox.about(self,"Error",str(e))
             tb=traceback.format_exc()
@@ -131,6 +137,7 @@ class Window(QtGui.QMainWindow):
         self.tab_widget.setCurrentIndex(newIndex)
         widget = self.tab_widget.currentWidget()
         widget.read_data(filename)
+
 
     #we call the save function
     def Save(self):
@@ -200,19 +207,25 @@ class Table(QtGui.QWidget):
             yield key, value, comment
 
     #Here we put all values on tables   
-    def addData(self, data):
-        for item in data:
-            if item[0] == 'type':
+    def addData(self,cfg):
+        for item in cfg:
+            if item == 'type':
                 box = self.table.cellWidget(0,1)
-                box.setCurrentIndex(box.findText(item[1], QtCore.Qt.MatchFixedString))
-                self.cell.setToolTip(item[2])
+                box.setCurrentIndex(box.findText(cfg[item], QtCore.Qt.MatchFixedString))
             else: 
                 self.add_row()
                 row = self.table.rowCount()
                 for col in range(self.table.columnCount()):
-                    newitem = QtGui.QTableWidgetItem(item[col])
-                    self.table.setItem(row -1, col, newitem)
-                    newitem.setToolTip(item[2])
+                    if col == 0:
+                        newitem = QtGui.QTableWidgetItem(item)
+                        self.table.setItem(row -1, col, newitem)   
+                    if col == 1:
+                        newitem2 = QtGui.QTableWidgetItem(cfg[item])
+                        self.table.setItem(row -1, col, newitem2)
+            print item
+            print cfg[item]            
+
+                    
                         
 
     def addDataConf(self, items):
@@ -339,42 +352,14 @@ class Conf_Tab(QtGui.QWidget):
 
     #This method take elements on a text file or the binocular script and put them on tables
     def read_data(self,filename):
-        with open(filename, 'r') as inf:
-            lines = inf.readlines()
- 
-        data = {'dispatcher': [], 'input': [], 'projection': []}
-        for line in lines:
-            line = line.strip('\n')
-            if '[dispatcher]' in line:
-                key = 'dispatcher'
-            elif '[input]' in line:
-                key = 'input'
-            elif '[projection]' in line: 
-                key = 'projection'
-            else:
-                if '#' in line:
-                    index = line.index('#')
-                    caput = line[:index]
-                    cauda = line[index:]
-                else:
-                    caput = line
-                    cauda = ''
-                if '=' in caput:
-                    name, value = caput.split('=')
-                    if name.strip(' ') == 'type' and ':' in value:
-                        backend, value = value.strip(' ').split(':')
-                    data[key].append([name.strip(' '), value.strip(' '), cauda.strip(' ')])
+        cfg = BINoculars.util.ConfigFile.fromtxtfile(str(filename))    
+        self.Dis.addData(cfg.dispatcher)
+        self.Inp.addData(cfg.input)
+        self.Pro.addData(cfg.projection)
+        #self.select.setCurrentIndex(self.select.findText(backend, QtCore.Qt.MatchFixedString))
+        #self.DataCombo(backend)
 
-        self.select.setCurrentIndex(self.select.findText(backend, QtCore.Qt.MatchFixedString))
-        self.DataCombo(backend)
-        for key in data:
-            if key == 'dispatcher':
-                self.Dis.addData(data[key])
-            elif key == 'input':
-                self.Inp.addData(data[key])
-            elif key == 'projection':
-                self.Pro.addData(data[key])
-
+    
     #we add command on the DockWidget
     def AddCommand(self):
         scan = [str(self.scan.text())]
