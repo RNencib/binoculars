@@ -211,7 +211,13 @@ class Table(QtGui.QWidget):
         for item in cfg:
             if item == 'type':
                 box = self.table.cellWidget(0,1)
-                box.setCurrentIndex(box.findText(cfg[item], QtCore.Qt.MatchFixedString))
+                value = cfg[item].split(':') 
+                if len(value)> 1 :
+                    box.setCurrentIndex(box.findText(value[1], QtCore.Qt.MatchFixedString))
+                    print value[1]
+                else:
+                    box.setCurrentIndex(box.findText(cfg[item], QtCore.Qt.MatchFixedString))
+                    print cfg[item]
             else: 
                 self.add_row()
                 row = self.table.rowCount()
@@ -222,15 +228,14 @@ class Table(QtGui.QWidget):
                     if col == 1:
                         newitem2 = QtGui.QTableWidgetItem(cfg[item])
                         self.table.setItem(row -1, col, newitem2)
-            print item
-            print cfg[item]            
+                      
 
                     
                         
 
     def addDataConf(self, items):
         keys = self.get_keys()
-        newconfigs = list([item[0], '', item[1]] for item in items if item[0] not in keys)
+        newconfigs = dict((item[0], '') for item in items if item[0] not in keys)
         self.addData(newconfigs)
 
                 
@@ -266,15 +271,15 @@ class Conf_Tab(QtGui.QWidget):
 
         #the dispositon of all elements of the gui
         Layout = QtGui.QGridLayout()
-        Layout.addWidget(label1,0,3,1,2)
-        Layout.addWidget(label2,0,1,1,2)
-        Layout.addWidget(label3,0,5,1,2)
+        Layout.addWidget(label1,1,1,1,2)
+        Layout.addWidget(label2,1,0,1,2)
+        Layout.addWidget(label3,1,2,1,2)
         Layout.addWidget(self.select,0,0)
-        Layout.addWidget(self.Dis,1,3)
-        Layout.addWidget(self.Inp,1,1)
-        Layout.addWidget(self.Pro,1,5) 
-        Layout.addWidget(self.add,2,0)
-        Layout.addWidget(self.scan,2,1)
+        Layout.addWidget(self.Dis,2,1)
+        Layout.addWidget(self.Inp,2,0)
+        Layout.addWidget(self.Pro,2,2) 
+        Layout.addWidget(self.add,3,0)
+        Layout.addWidget(self.scan,3,1)
         self.setLayout(Layout)
         
         #Here we call all methods for selected an ellement on differents combobox 
@@ -353,11 +358,13 @@ class Conf_Tab(QtGui.QWidget):
     #This method take elements on a text file or the binocular script and put them on tables
     def read_data(self,filename):
         cfg = BINoculars.util.ConfigFile.fromtxtfile(str(filename))    
+        input_type = cfg.input['type']
+        backend, value = input_type.strip(' ').split(':')
+        self.select.setCurrentIndex(self.select.findText(backend, QtCore.Qt.MatchFixedString))
+        self.DataCombo(backend)
         self.Dis.addData(cfg.dispatcher)
         self.Inp.addData(cfg.input)
         self.Pro.addData(cfg.projection)
-        #self.select.setCurrentIndex(self.select.findText(backend, QtCore.Qt.MatchFixedString))
-        #self.DataCombo(backend)
 
     
     #we add command on the DockWidget
