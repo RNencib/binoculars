@@ -96,43 +96,57 @@ class Window(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea(1),self.Dock)
     
     def removeConf(self):
-        self.ListCommand.removeRow(self.ListCommand.currentRow())  
+        self.ListCommand.removeRow(self.ListCommand.currentRow()) 
+        if self.ListCommand.rowCount() == 0:
+            self.ListCommand.insertRow(0)
+
         
     def Add_To_Liste(self,(command, cfg)): 
         row = self.ListCommand.rowCount()
-        item1 = QtGui.QTableWidgetItem(str(command))
-        item1.command = command
-        item2 = QtGui.QTableWidgetItem(str(cfg))
-        item2.cfg = cfg
+        index = self.tab_widget.currentIndex()
+        filename = self.tab_widget.tabText(index)
+        self.item1 = QtGui.QTableWidgetItem(str(command))
+        self.item1.command = command
+        self.item2 = QtGui.QTableWidgetItem(str(filename))
+        self.item2.cfg = cfg
 
-        self.ListCommand.setItem(row-1, 0, item1)
-        self.ListCommand.setItem(row-1, 1, item2)
+        self.ListCommand.setItem(row-1, 0, self.item1)
+        self.ListCommand.setItem(row-1, 1, self.item2)
         self.ListCommand.insertRow(self.ListCommand.rowCount())
         
 
     #We run the script and create a hdf5 file            
     def run(self):
+        pd = QtGui.QProgressDialog('running', 'Cancel', 0, 0, self)
+        pd.setWindowModality(QtCore.Qt.WindowModal)
+        pd.show()
+        def progress(cfg, command):
+            pd.setValue(0)
+            if pd.wasCanceled():
+                raise KeyboardInterrupt
+            QtGui.QApplication.processEvents()
+            return BINoculars.main.Main.from_object(cfg, command)
         try:
             for index in range(self.ListCommand.rowCount()-1):
                 cfg = self.ListCommand.item(index,1).cfg
                 command = self.ListCommand.item(index,0).command
-                BINoculars.main.Main.from_object(cfg, command)
-            self.ListCommand.setRowCount(1)
+                progress(cfg, command)
+                self.ListCommand.setRowCount(0)
         except BaseException, e:
-            #QtGui.QMessageBox.about(self,"Error",str(e))
             tb=traceback.format_exc()
-            #we show the traceback in a messagebox when the user make an error 
             QtGui.QMessageBox.about(self,"Error Message",QtCore.QString(tb))
+        finally:
+                pd.close()
 
     #we call the load function
     def ShowFile(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '')
         for F in filename.split('/') :
-            NameFile = []
-            NameFile.append(F)
-        NameFile.reverse()
+            self.NameFile = []
+            self.NameFile.append(F)
+        self.NameFile.reverse()
         confwidget = Conf_Tab(self) 
-        newIndex =  self.tab_widget.addTab(confwidget,NameFile[0])
+        newIndex =  self.tab_widget.addTab(confwidget,self.NameFile[0])
         QtCore.QObject.connect(confwidget, QtCore.SIGNAL("command"),self.Add_To_Liste)
         self.tab_widget.setCurrentIndex(newIndex)
         widget = self.tab_widget.currentWidget()
@@ -214,10 +228,9 @@ class Table(QtGui.QWidget):
                 value = cfg[item].split(':') 
                 if len(value)> 1 :
                     box.setCurrentIndex(box.findText(value[1], QtCore.Qt.MatchFixedString))
-                    print value[1]
+                    
                 else:
-                    box.setCurrentIndex(box.findText(cfg[item], QtCore.Qt.MatchFixedString))
-                    print cfg[item]
+                    box.setCurrentIndex(box.findText(cfg[item], QtCore.Qt.MatchFixedString))       
             else: 
                 self.add_row()
                 row = self.table.rowCount()
@@ -295,19 +308,19 @@ class Conf_Tab(QtGui.QWidget):
         self.Pro.add_to_combo(QtCore.QStringList(BINoculars.util.get_projections(str(text))))
 
     def DataTableInp (self,text):
-        self.Inp.table.setRowCount(1)
+        #self.Inp.table.setRowCount(1)
         backend = str(self.select.currentText())
         inp = BINoculars.util.get_input_configkeys(backend, str(self.Inp.combobox.currentText()))
         self.Inp.addDataConf(inp)
 
     def DataTableInpPro (self,text):
-        self.Pro.table.setRowCount(1)
+        #self.Pro.table.setRowCount(1)
         backend = str(self.select.currentText())
         proj = BINoculars.util.get_projection_configkeys(backend, str(self.Pro.combobox.currentText()))
         self.Pro.addDataConf(proj)
 
     def DataTableInpDis (self,text):
-        self.Dis.table.setRowCount(1)
+        #self.Dis.table.setRowCount(1)
         backend = str(self.select.currentText())
         disp = BINoculars.util.get_dispatcher_configkeys(str(self.Dis.combobox.currentText()))
         self.Dis.addDataConf(disp)
