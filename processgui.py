@@ -101,40 +101,48 @@ class Window(QtGui.QMainWindow):
             self.ListCommand.insertRow(0)
 
         
-    def Add_To_Liste(self,(command, cfg)): 
+    def Add_To_Liste(self,(command, cfg)):
         row = self.ListCommand.rowCount()
         index = self.tab_widget.currentIndex()
         filename = self.tab_widget.tabText(index)
+        dic = {filename:cfg}
         self.item1 = QtGui.QTableWidgetItem(str(command))
         self.item1.command = command
         self.item2 = QtGui.QTableWidgetItem(str(filename))
-        self.item2.cfg = cfg
-
+        self.item2.cfg = dic[filename]
         self.ListCommand.setItem(row-1, 0, self.item1)
         self.ListCommand.setItem(row-1, 1, self.item2)
         self.ListCommand.insertRow(self.ListCommand.rowCount())
+
+        
+        
         
 
     #We run the script and create a hdf5 file            
     def run(self):
-        pd = QtGui.QProgressDialog('running', 'Cancel', 0, 0, self)
+        maximum = self.ListCommand.rowCount()
+        pd = QtGui.QProgressDialog('running', 'Cancel', 0, maximum, self)
         pd.setWindowModality(QtCore.Qt.WindowModal)
         pd.show()
         def progress(cfg, command):
-            pd.setValue(0)
-            if pd.wasCanceled():
+            if pd.wasCanceled(): 
                 raise KeyboardInterrupt
             QtGui.QApplication.processEvents()
             return BINoculars.main.Main.from_object(cfg, command)
         try:
             for index in range(self.ListCommand.rowCount()-1):
+                pd.setValue(index + 1)
                 cfg = self.ListCommand.item(index,1).cfg
                 command = self.ListCommand.item(index,0).command
+                print cfg
                 progress(cfg, command)
-                self.ListCommand.setRowCount(0)
+            self.ListCommand.clear()
+            self.ListCommand.setRowCount(1)
         except BaseException, e:
-            tb=traceback.format_exc()
-            QtGui.QMessageBox.about(self,"Error Message",QtCore.QString(tb))
+            if e == "'NoneType' object has no attribute 'cfg'":
+                print "ok"
+            else:    
+                QtGui.QMessageBox.about(self,"Error","There was an error processing one of the scans: {0}".format(e))
         finally:
                 pd.close()
 
