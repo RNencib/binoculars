@@ -73,6 +73,7 @@ class Window(QtGui.QMainWindow):
         self.ListCommand.horizontalHeader().stretchSectionCount()
         self.ListCommand.setColumnWidth(0, 80)
         self.ListCommand.setColumnWidth(1, 80)
+        self.ListCommand.setRowCount(0)
         self.buttonDelete = QtGui.QPushButton('Delete',self)
         self.connect(self.buttonDelete, QtCore.SIGNAL("clicked()"), self.removeConf)
         self.process = QtGui.QPushButton('run',self)
@@ -105,14 +106,15 @@ class Window(QtGui.QMainWindow):
         row = self.ListCommand.rowCount()
         index = self.tab_widget.currentIndex()
         filename = self.tab_widget.tabText(index)
+        self.ListCommand.insertRow(self.ListCommand.rowCount())
         dic = {filename:cfg}
         self.item1 = QtGui.QTableWidgetItem(str(command))
         self.item1.command = command
         self.item2 = QtGui.QTableWidgetItem(str(filename))
         self.item2.cfg = dic[filename]
-        self.ListCommand.setItem(row-1, 0, self.item1)
-        self.ListCommand.setItem(row-1, 1, self.item2)
-        self.ListCommand.insertRow(self.ListCommand.rowCount())
+        self.ListCommand.setItem(row, 0, self.item1)
+        self.ListCommand.setItem(row, 1, self.item2)
+        
 
         
         
@@ -130,18 +132,15 @@ class Window(QtGui.QMainWindow):
             QtGui.QApplication.processEvents()
             return BINoculars.main.Main.from_object(cfg, command)
         try:
-            for index in range(self.ListCommand.rowCount()-1):
-                pd.setValue(index + 1)
+            for index in range(self.ListCommand.rowCount()):
+                pd.setValue(index)
                 cfg = self.ListCommand.item(index,1).cfg
                 command = self.ListCommand.item(index,0).command
                 print cfg
                 progress(cfg, command)
             self.ListCommand.clear()
-            self.ListCommand.setRowCount(1)
-        except BaseException, e:
-            if e == "'NoneType' object has no attribute 'cfg'":
-                print "ok"
-            else:    
+            self.ListCommand.setRowCount(0)
+        except BaseException, e:  
                 QtGui.QMessageBox.about(self,"Error","There was an error processing one of the scans: {0}".format(e))
         finally:
                 pd.close()
