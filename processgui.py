@@ -63,7 +63,7 @@ class Window(QtGui.QMainWindow):
         palette = QtGui.QPalette()
         palette.setColor(QtGui.QPalette.Background,QtCore.Qt.gray)
         self.setPalette(palette)
-        self.setGeometry(50, 100,600,500)
+        self.setGeometry(50, 100,700,700)
         self.setWindowTitle('Binoculars processgui')
         self.show()
 
@@ -98,8 +98,6 @@ class Window(QtGui.QMainWindow):
     
     def removeConf(self):
         self.ListCommand.removeRow(self.ListCommand.currentRow()) 
-        if self.ListCommand.rowCount() == 0:
-            self.ListCommand.insertRow(0)
 
         
     def Add_To_Liste(self,(command, cfg)):
@@ -115,7 +113,7 @@ class Window(QtGui.QMainWindow):
         self.ListCommand.setItem(row, 0, self.item1)
         self.ListCommand.setItem(row, 1, self.item2)
         
-
+ 
         
         
         
@@ -140,8 +138,11 @@ class Window(QtGui.QMainWindow):
                 progress(cfg, command)
             self.ListCommand.clear()
             self.ListCommand.setRowCount(0)
-        except BaseException, e:  
+        except BaseException, e: 
+                #cfg = self.ListCommand.item(index,1).cfg
+                #print cfg
                 QtGui.QMessageBox.about(self,"Error","There was an error processing one of the scans: {0}".format(e))
+                
         finally:
                 pd.close()
 
